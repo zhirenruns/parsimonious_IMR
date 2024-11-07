@@ -45,11 +45,12 @@ B_elast = 5/2 - sqrt(2/3)*pi*ARC./LX;
 Beta = 1./(1 + B_elast./Ca_guess);
 
 Y = 2*ARC * (0.4637./(Re_guess) + 0.56598./(Re_guess.^2) + 5.7331./(Re_guess.^3));
+Z = 1 - ( Y + sqrt(Y.^2 + 1) ).^(-2);
 
 blob = ARC*De_guess;
 omg = 1 + blob.*(exp(-1./blob)-1);
 
-fmodel = (1 - 1./Beta) + Y.*omg;
+fmodel = (1 - 1./Beta) + Z.*omg;
 
 fsum = 1 - fmodel - f_We - f_Ma - f_gas; 
 
