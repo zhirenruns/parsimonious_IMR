@@ -29,6 +29,8 @@
 clc; close all; 
 clearvars;
 
+addpath('../graphics'); % To access color map etc.
+
 %% User input
 
 % Input file
