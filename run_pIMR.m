@@ -5,7 +5,7 @@
 %
 %       Zhiren Zhu (zhiren@umich.edu)
 %
-%       Updated: Aug. 2024
+%       Updated: Jan. 2025
 %
 % =========================================================================
 % Usage:
@@ -30,15 +30,20 @@ clc; close all;
 clearvars;
 
 %% User input
+
+% Input file
 infile = 'data/pIMR_PA_10_Refined.mat';   % Name of file to read
 load(infile);
 
-data_in = pIMR_array;                         % Name of variable to read
+data_in = pIMR_array;                     % Name of variables to read
+
+% Output options
+make_plot = 1;       % Set to 1 to plot cost function for KV fit, as demo.
 
 % Physical parameters used
 p_inf = 101325;         % (Pa) Atmospheric Pressure
 rho = 998.2;            % (kg/m^3) Density of characterized material
-gam = 0.056;            % (N/m) Surface tension
+gam = 0.070;            % (N/m) Surface tension
 cwave = 1484;           % (m/s) Wave speed in characterized material
 pvsat = 3116.7757;      % (Pa) Saturated vapor pressure at far-field temperature
 
@@ -114,8 +119,8 @@ disp("KV Best Fit: G = " + G_opt_KV + " Pa, mu = " + mu_opt_KV + " Pa*s.")
 
 %% SLS fit
 
-err = @(X) (T1_ND./fit_SLS(X(1),X(2),X(3),data_fit)).^2 - 1;
-err_fn = @(X) log10((err(X))'*(err(X))/nX);
+err_SLS = @(X) (T1_ND./fit_SLS(X(1),X(2),X(3),data_fit)).^2 - 1;
+err_fn_SLS = @(X) log10((err_SLS(X))'*(err_SLS(X))/nX);
 
 G_min = 1;
 G_max = 1E6; 
@@ -131,10 +136,78 @@ tau1_start = 1E-7;
 
 options = optimset('TolFun',1E-8,'MaxIter', 8000, 'MaxFunEvals', 2000);
 
-opt_fit = fminsearchbnd(err_fn,[G_start,mu_start,tau1_start],[G_min,mu_min,tau1_min],[G_max,mu_max,tau1_max], options);
+opt_fit = fminsearchbnd(err_fn_SLS,[G_start,mu_start,tau1_start],[G_min,mu_min,tau1_min],[G_max,mu_max,tau1_max], options);
 
-G_opt = opt_fit(1);
-mu_opt = opt_fit(2);
-tau1_opt = opt_fit(3);
+G_opt_SLS = opt_fit(1);
+mu_opt_SLS = opt_fit(2);
+tau1_opt_SLS = opt_fit(3);
 
-disp("SLS Best Fit: G = " + G_opt + " Pa, mu = " + mu_opt + " Pa*s, tau1 = " + tau1_opt + "s.")
+disp("SLS Best Fit: G = " + G_opt_SLS + " Pa, mu = " + mu_opt_SLS + " Pa*s, tau1 = " + tau1_opt_SLS + "s.")
+
+%% Plot of Kelvin-Voigt model cost function space
+
+if make_plot == 1
+
+    % (1) Define parameter space to sweep
+    dx = 2E-3;
+    G_try = 10.^(3:dx:5);
+    mu_try = 10.^(-3:dx:0);
+    
+    nG = length(G_try);
+    nmu = length(mu_try);
+    
+    Err_NHKV = zeros(nG,nmu);
+
+    % (2) Calculate cost function 
+    disp('Preparing contour plot ...')
+
+    for ii = 1:nG
+    
+        Gi = G_try(ii);
+    
+        for jj = 1:nmu
+    
+            muj = mu_try(jj);
+    
+            Err_NHKV(ii,jj) = err_fn_NHKV([Gi,muj]);
+        end
+    end
+
+    % (3) Normalize
+    psi_min = err_fn_NHKV([G_opt_KV,mu_opt_KV]);
+    Err2 = Err_NHKV - psi_min;
+
+    % (4) Plot
+    figure(100);
+    hold on; box on;
+
+    kilo = 1E3;
+    ft_sz = 12;
+    bnd = [0.1,0.5:0.5:10]; % Contour levels
+
+    [C1,h1] = contour(G_try/kilo, mu_try, Err2', bnd, 'LineWidth', 1.0 );
+    clabel(C1, h1, bnd, 'FontSize',ft_sz*(2/3),'Interpreter','Latex'); 
+
+    plot(G_opt_KV/kilo, mu_opt_KV, 'Marker', 'pentagram', 'MarkerSize', 10, 'Color', 'k', 'MarkerFaceColor', 'k');
+
+    colormap(inferno)
+
+    cmin = 0;
+    cmax = 4;
+    clim([cmin cmax])
+
+    cbar = colorbar;
+    set(cbar,'TickLabelInterpreter','Latex','FontSize',ft_sz)
+    cbar_ttl = get(cbar,'Title');
+    set(cbar_ttl ,'String',"$\hat{\psi}$",'Interpreter',"Latex",'FontSize',ft_sz);
+
+    set(gca,'TickLabelInterpreter','Latex','FontSize',ft_sz)
+    xl = xlabel('$G$ [kPa]');
+    yl = ylabel('$\mu~[\rm Pa \cdot s]$');
+    set(xl,'Interpreter','Latex','FontSize',ft_sz)
+    set(yl,'Interpreter','Latex','FontSize',ft_sz)
+
+    pbaspect([1,1,1])
+    set(gca,'xscale','log')
+    set(gca,'yscale','log')
+end
