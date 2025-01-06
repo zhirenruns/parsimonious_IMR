@@ -29,18 +29,18 @@
 clc; close all; 
 clearvars;
 
-addpath('../graphics'); % To access color map etc.
+addpath('graphics'); % To access color map etc.
 
 %% User input
 
 % Input file
-infile = 'data/pIMR_PA_10_Refined.mat';   % Name of file to read
+infile = 'data/pIMR_PA_05_Refined.mat';   % Name of file to read
 load(infile);
 
 data_in = pIMR_array;                     % Name of variables to read
 
 % Output options
-make_plot = 1;       % Set to 1 to plot cost function for KV fit, as demo.
+make_plot = 0;       % Set to 1 to plot cost function for KV fit, as demo.
 
 % Physical parameters used
 p_inf = 101325;         % (Pa) Atmospheric Pressure
