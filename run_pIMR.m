@@ -82,8 +82,15 @@ Ca_scale = pbar*ones(nX,1); % Ca*G
 Re_scale = rho*uc*RX; % = Re*mu
 De_scale = RX/uc; % This is the characteristic time scale
 
+% Add hypergeometric function for SLS:
+hypg = zeros(size(LX));
+for ii = 1:length(LX)
+    R0 = 1/LX(ii);
+    hypg(ii) = hypergeom([1/2,5/6],11/6, R0^3);
+end
+
 % Construct new matrix to pass to solver:
-data_fit = [RX,LX,f_Ma,f_We,f_gas,Ca_scale,Re_scale,De_scale]; % These are the info needed to estimate t1 for given viscoelastic parameters
+data_fit = [RX,LX,f_Ma,f_We,f_gas,Ca_scale,Re_scale,De_scale,hypg]; % These are the info needed to estimate t1 for given viscoelastic parameters
 
 % Convert T1X to dimensionless, relative to t_{RC} at each scale.
 % This way we don't need to (a) play with small numbers, (b) pass the 
@@ -97,21 +104,17 @@ T1_ND = T1X./tRC;
 err_NHKV = @(X) (T1_ND./fit_NHKV(X(1),X(2),data_fit)).^2 - 1;
 err_fn_NHKV = @(X) log10((err_NHKV(X))'*(err_NHKV(X))/nX);
 
-G_min = 1E0;
-G_max = 1E6;
-mu_min = 0.0;
-mu_max = 1.0;
 G_start = 1E4;
 mu_start = 0.1;
 
-opt_fit = fminsearchbnd(err_fn_NHKV,[G_start,mu_start],[G_min,mu_min],[G_max,mu_max]);
+opt_fit = fminsearch(err_fn_NHKV,[G_start,mu_start]);
 
 G_opt_KV = opt_fit(1);
 mu_opt_KV = opt_fit(2);
 
 % Also find single-parameter fits:
-opt_fit_justNeoH = fminsearchbnd(err_fn_NHKV,[G_start,0],[G_min,0],[G_max,0]);
-opt_fit_justNewt = fminsearchbnd(err_fn_NHKV,[0,mu_start],[0,mu_min],[0,mu_max]);
+opt_fit_justNeoH = fminsearch(err_fn_NHKV,[G_start,0]);
+opt_fit_justNewt = fminsearch(err_fn_NHKV,[0,mu_start]);
 
 disp("NH Best Fit: G = " + opt_fit_justNeoH(1) + " Pa.")
 disp("Newtonian Best Fit: mu = " + opt_fit_justNewt(2) + " Pa*s.")
@@ -124,21 +127,13 @@ disp("KV Best Fit: G = " + G_opt_KV + " Pa, mu = " + mu_opt_KV + " Pa*s.")
 err_SLS = @(X) (T1_ND./fit_SLS(X(1),X(2),X(3),data_fit)).^2 - 1;
 err_fn_SLS = @(X) log10((err_SLS(X))'*(err_SLS(X))/nX);
 
-G_min = 1;
-G_max = 1E6; 
-G_start = G_opt_KV;
-
-mu_min = 0.0;
-mu_max = 1.0;
+G_start = G_opt_KV/10;
 mu_start = 0.01;
-
-tau1_min = 1E-9;
-tau1_max = 1E-1;
-tau1_start = 1E-7;
+tau1_start = 1E-8;
 
 options = optimset('TolFun',1E-8,'MaxIter', 8000, 'MaxFunEvals', 2000);
 
-opt_fit = fminsearchbnd(err_fn_SLS,[G_start,mu_start,tau1_start],[G_min,mu_min,tau1_min],[G_max,mu_max,tau1_max], options);
+opt_fit = fminsearch(err_fn_SLS,[G_start,mu_start,tau1_start], options);
 
 G_opt_SLS = opt_fit(1);
 mu_opt_SLS = opt_fit(2);
