@@ -5,7 +5,7 @@
 %
 %       Zhiren Zhu (zhiren@umich.edu)
 %
-%       Updated: Jan. 2025
+%       Updated: April 2025
 %
 % =========================================================================
 % Usage:
@@ -34,7 +34,7 @@ addpath('graphics'); % To access color map etc.
 %% User input
 
 % Input file
-infile = 'data/pIMR_PA_05_Refined.mat';   % Name of file to read
+infile = 'data/LHS-simpool-x36_KV.mat';   % Name of file to read
 load(infile);
 
 data_in = pIMR_array;                     % Name of variables to read
@@ -106,9 +106,10 @@ err_fn_NHKV = @(X) log10((err_NHKV(X))'*(err_NHKV(X))/nX);
 
 G_min = 1E-3;
 G_max = 1E6;
+G_start = 1E4;
+
 mu_min = 0.0;
 mu_max = 5.0;
-G_start = 1E4;
 mu_start = 0.1;
 
 opt_fit_KV = fminsearchbnd(err_fn_NHKV,[G_start,mu_start],[G_min,mu_min],[G_max,mu_max]);
@@ -154,6 +155,32 @@ opt_fit_Maxwell = fminsearchbnd(err_fn_SLS,[0,mu_start,tau1_start],[0,mu_min,tau
 
 disp("Maxwell Best Fit: mu = " + opt_fit_Maxwell(2) + " Pa*s, tau1 = " + opt_fit_Maxwell(3) + "s.")
 disp("SLS Best Fit: G = " + G_opt_SLS + " Pa, mu = " + mu_opt_SLS + " Pa*s, tau1 = " + tau1_opt_SLS + "s.")
+
+%% Quadratic KV model
+
+err_QKV = @(X) (T1_ND./fit_QKV(X(1),X(2),X(3),data_fit)).^2 - 1;
+err_fn_QKV = @(X) log10((err_QKV(X))'*(err_QKV(X))/nX);
+
+G_min = 1E-3;
+G_max = 1E6;
+G_start = 1E4;
+
+mu_min = 0.0;
+mu_max = 5.0;
+mu_start = 0.1;
+
+alpha_min = 0.0;
+alpha_max = 10.0;
+alpha_start = 0.1;
+
+opt_fit_QKV = fminsearchbnd(err_fn_QKV,[G_start,mu_start,alpha_start],[G_min,mu_min,alpha_min],[G_max,mu_max,alpha_max]);
+
+G_opt_QKV = opt_fit_QKV(1);
+mu_opt_QKV = opt_fit_QKV(2);
+alpha_opt_QKV = opt_fit_QKV(3);
+
+disp("QKV Best Fit: G = " + G_opt_QKV + " Pa, mu = " + mu_opt_QKV + " Pa*s, alpha = " + alpha_opt_QKV + ".")
+
 
 %% Plot of Kelvin-Voigt model cost function space
 
