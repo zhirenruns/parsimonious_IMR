@@ -34,7 +34,7 @@ addpath('graphics'); % To access color map etc.
 %% User input
 
 % Input file
-infile = 'data/LHS-simpool-x36_KV.mat';   % Name of file to read
+infile = 'data/pIMR_PA_05_Refined.mat';   % Name of file to read
 load(infile);
 
 data_in = pIMR_array;                     % Name of variables to read
